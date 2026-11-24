@@ -89,7 +89,8 @@ function evaluate(expression, mode) {
             '*': 2,
             '/': 2,
             '^': 3,
-            '!': 4
+            '!': 4,
+            'neg': 5
         };
         
         let lastToken = null;
@@ -111,7 +112,7 @@ function evaluate(expression, mode) {
                     (lastToken.type === 'operator' && lastToken.value !== ')') ||
                     (lastToken.type === 'paren' && lastToken.value === '(')
                 )) {
-                    operators.push({ type: 'function', value: 'neg' });
+                    operators.push({ type: 'operator', value: 'neg' });
                 } else if (token.value === '!') {
                     // Обработка факториала
                     const operand = output.pop();
@@ -126,6 +127,7 @@ function evaluate(expression, mode) {
                     // Обработка других операторов
                     while (
                         operators.length > 0 &&
+                        operators[operators.length - 1].type === 'operator' &&
                         (
                             operators[operators.length - 1].value !== '^' ||
                             precedence[operators[operators.length - 1].value] > precedence[token.value]
@@ -167,9 +169,14 @@ function evaluate(expression, mode) {
         // Очистка оставшихся операторов
         while (operators.length > 0) {
             const op = operators.pop();
-            const right = output.pop();
-            const left = output.pop();
-            output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+            if (op.type === 'function') {
+                const arg = output.pop();
+                output.push({ type: 'number', value: applyOperator(undefined, arg.value, op.value) });
+            } else {
+                const right = output.pop();
+                const left = output.pop();
+                output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+            }
         }
         
         if (output.length !== 1) {
