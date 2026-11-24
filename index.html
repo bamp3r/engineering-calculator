@@ -92,6 +92,7 @@ function evaluate(expression, mode) {
             '!': 4
         };
         
+        let lastToken = null;
         for (const token of tokens) {
             if (token.type === 'number') {
                 output.push(token);
@@ -104,7 +105,14 @@ function evaluate(expression, mode) {
             } else if (token.type === 'function') {
                 operators.push({ type: 'function', value: token.value });
             } else if (token.type === 'operator') {
-                if (token.value === '!') {
+                // Handle unary minus
+                if (token.value === '-' && (
+                    lastToken === null ||
+                    (lastToken.type === 'operator' && lastToken.value !== ')') ||
+                    (lastToken.type === 'paren' && lastToken.value === '(')
+                )) {
+                    operators.push({ type: 'function', value: 'neg' });
+                } else if (token.value === '!') {
                     // Обработка факториала
                     const operand = output.pop();
                     if (!operand) {
@@ -118,7 +126,10 @@ function evaluate(expression, mode) {
                     // Обработка других операторов
                     while (
                         operators.length > 0 &&
-                        precedence[operators[operators.length - 1].value] >= precedence[token.value]
+                        (
+                            operators[operators.length - 1].value !== '^' ||
+                            precedence[operators[operators.length - 1].value] > precedence[token.value]
+                        )
                     ) {
                         const op = operators.pop();
                         const right = output.pop();
@@ -142,8 +153,15 @@ function evaluate(expression, mode) {
                         throw new Error('Ошибка: несоответствие скобок');
                     }
                     operators.pop(); // Удалить '(' из стека
+                    // Apply function if next on stack
+                    if (operators.length > 0 && operators[operators.length - 1].type === 'function') {
+                        const func = operators.pop();
+                        const arg = output.pop();
+                        output.push({ type: 'number', value: applyOperator(undefined, arg.value, func.value) });
+                    }
                 }
             }
+            lastToken = token;
         }
         
         // Очистка оставшихся операторов
@@ -225,36 +243,48 @@ function evaluate(expression, mode) {
                 return Math.log2(right);
             case 'abs':
                 return Math.abs(right);
-            case 'exp':
-                return Math.exp(right);
+            case 'neg':
+                return -right;
             default:
                 throw new Error(`Ошибка: неизвестный оператор ${operator}`);
         }
     };
 
     // Обработка режима (DEG/RAD) для тригонометрических функций
+    let originalFunctions = null;
     if (mode === 'DEG') {
-        const originalSin = Math.sin;
-        const originalCos = Math.cos;
-        const originalTan = Math.tan;
-        const originalAsin = Math.asin;
-        const originalAcos = Math.acos;
-        const originalAtan = Math.atan;
-
-        Math.sin = (x) => originalSin(x * Math.PI / 180);
-        Math.cos = (x) => originalCos(x * Math.PI / 180);
-        Math.tan = (x) => originalTan(x * Math.PI / 180);
-        Math.asin = (x) => originalAsin(x) * 180 / Math.PI;
-        Math.acos = (x) => originalAcos(x) * 180 / Math.PI
-        Math.atan = (x) => originalAtan(x) * 180 / Math.PI;
-
-        // Восстановление оригинальных функций после вычисления
-        // (Здесь не будет восстановления, так как это глобальные изменения)
+        originalFunctions = {
+            sin: Math.sin,
+            cos: Math.cos,
+            tan: Math.tan,
+            asin: Math.asin,
+            acos: Math.acos,
+            atan: Math.atan
+        };
+        Math.sin = (x) => originalFunctions.sin(x * Math.PI / 180);
+        Math.cos = (x) => originalFunctions.cos(x * Math.PI / 180);
+        Math.tan = (x) => originalFunctions.tan(x * Math.PI / 180);
+        Math.asin = (x) => originalFunctions.asin(x) * 180 / Math.PI;
+        Math.acos = (x) => originalFunctions.acos(x) * 180 / Math.PI;
+        Math.atan = (x) => originalFunctions.atan(x) * 180 / Math.PI;
     }
 
     // Выполнение парсинга и вычисления
     const tokens = tokenize(expression);
-    return parse(tokens);
+    let result;
+    try {
+        result = parse(tokens);
+    } finally {
+        if (originalFunctions) {
+            Math.sin = originalFunctions.sin;
+            Math.cos = originalFunctions.cos;
+            Math.tan = originalFunctions.tan;
+            Math.asin = originalFunctions.asin;
+            Math.acos = originalFunctions.acos;
+            Math.atan = originalFunctions.atan;
+        }
+    }
+    return result;
 }
 
 if (typeof module !== 'undefined') {
