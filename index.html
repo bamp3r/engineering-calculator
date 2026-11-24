@@ -90,7 +90,7 @@ function evaluate(expression, mode) {
             '/': 2,
             '^': 3,
             '!': 4,
-            'neg': 5
+            'neg': 2
         };
         
         let lastToken = null;
@@ -109,7 +109,7 @@ function evaluate(expression, mode) {
                 // Handle unary minus
                 if (token.value === '-' && (
                     lastToken === null ||
-                    (lastToken.type === 'operator' && lastToken.value !== ')') ||
+                    (lastToken.type === 'operator' && lastToken.value !== ')') || (lastToken.type === 'function') || (lastToken.type === 'paren' && lastToken.value === ')') ||
                     (lastToken.type === 'paren' && lastToken.value === '(')
                 )) {
                     operators.push({ type: 'operator', value: 'neg' });
@@ -129,14 +129,22 @@ function evaluate(expression, mode) {
                         operators.length > 0 &&
                         operators[operators.length - 1].type === 'operator' &&
                         (
-                            operators[operators.length - 1].value !== '^' ||
-                            precedence[operators[operators.length - 1].value] > precedence[token.value]
+                            precedence[operators[operators.length - 1].value] > precedence[token.value] ||
+                            (precedence[operators[operators.length - 1].value] === precedence[token.value] && operators[operators.length - 1].value !== '^' && token.value !== '^')
                         )
                     ) {
                         const op = operators.pop();
-                        const right = output.pop();
-                        const left = output.pop();
-                        output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                        if (op.value === 'neg') {
+                            const operand = output.pop();
+                            if (!operand) {
+                                throw new Error('Ошибка: недостаточно операндов для отрицательного');
+                            }
+                            output.push({ type: 'number', value: applyOperator(undefined, operand.value, op.value) });
+                        } else {
+                            const right = output.pop();
+                            const left = output.pop();
+                            output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                        }
                     }
                     operators.push(token);
                 }
@@ -147,9 +155,17 @@ function evaluate(expression, mode) {
                     // Завершение скобки
                     while (operators.length > 0 && operators[operators.length - 1].type !== 'paren') {
                         const op = operators.pop();
-                        const right = output.pop();
-                        const left = output.pop();
-                        output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                        if (op.value === 'neg') {
+                            const operand = output.pop();
+                            if (!operand) {
+                                throw new Error('Ошибка: недостаточно операндов для отрицательного');
+                            }
+                            output.push({ type: 'number', value: applyOperator(undefined, operand.value, op.value) });
+                        } else {
+                            const right = output.pop();
+                            const left = output.pop();
+                            output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                        }
                     }
                     if (operators.length === 0) {
                         throw new Error('Ошибка: несоответствие скобок');
@@ -167,15 +183,26 @@ function evaluate(expression, mode) {
         }
         
         // Очистка оставшихся операторов
+        // console.log('final operators', operators);
+        // console.log('final output', output);
         while (operators.length > 0) {
             const op = operators.pop();
             if (op.type === 'function') {
                 const arg = output.pop();
                 output.push({ type: 'number', value: applyOperator(undefined, arg.value, op.value) });
             } else {
-                const right = output.pop();
-                const left = output.pop();
-                output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                if (op.value === 'neg') {
+                    const operand = output.pop();
+                    if (!operand) {
+                        throw new Error('Ошибка: недостаточно операндов для отрицательного');
+                    }
+                    output.push({ type: 'number', value: applyOperator(undefined, operand.value, op.value) });
+                } else {
+                    const right = output.pop();
+                    const left = output.pop();
+                    // console.log('applying binary op', op.value, 'left', left, 'right', right);
+                    output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                }
             }
         }
         
