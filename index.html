@@ -82,6 +82,8 @@ button:active { filter:brightness(0.9); }
         <div id="indicators">
             <span id="mode" class="indicator">DEG</span>
             <span id="mem" class="indicator">M</span>
+<button id="historyToggle" style="font-size:0.8rem;">H</button>
+<div id="historyPanel" style="display:none; max-height:140px; overflow:auto; font-size:0.85rem; padding:6px; border-top:1px solid #444;"></div>
         </div>
     </div>
     <div class="grid grid-engineering">
@@ -462,6 +464,39 @@ if (typeof module !== 'undefined') {
 if (typeof document !== 'undefined') {
     let expr = '';
     let mode = 'DEG';
+    let memory = 0;
+    const history = [];
+    const memEl = document.getElementById('mem');
+    const historyToggle = document.getElementById('historyToggle');
+    const historyPanel = document.getElementById('historyPanel');
+    const updateMemIndicator = () => {
+        memEl.style.display = memory !== 0 ? 'inline' : 'none';
+    };
+    updateMemIndicator();
+    historyToggle.addEventListener('click', () => {
+        historyPanel.style.display = historyPanel.style.display === 'none' ? 'block' : 'none';
+    });
+    const refreshHistory = () => {
+        historyPanel.innerHTML = '';
+        history.slice().reverse().forEach((item) => {
+            const btn = document.createElement('button');
+            btn.textContent = item;
+            btn.style.display = 'block';
+            btn.style.width = '100%';
+            btn.style.textAlign = 'left';
+            btn.style.background = 'transparent';
+            btn.style.border = 'none';
+            btn.style.color = 'inherit';
+            btn.style.padding = '2px 0';
+            btn.addEventListener('click', () => {
+                expr = item.toString();
+                exprEl.textContent = expr || ' ';
+                resultEl.textContent = item;
+            });
+            historyPanel.appendChild(btn);
+        });
+    };
+
     const exprEl = document.getElementById('expr');
     const resultEl = document.getElementById('result');
     const modeEl = document.getElementById('mode');
@@ -495,12 +530,36 @@ if (typeof document !== 'undefined') {
                     mode = mode === 'DEG' ? 'RAD' : 'DEG';
                     modeEl.textContent = mode;
                     break;
+                case 'MC':
+                    memory = 0;
+                    updateMemIndicator();
+                    break;
+                case 'MR':
+                    expr += memory.toString();
+                    break;
+                case 'M+':
+                    try {
+                        const current = parseFloat(resultEl.textContent);
+                        memory += current;
+                        updateMemIndicator();
+                    } catch {}
+                    break;
+                case 'M-':
+                    try {
+                        const current = parseFloat(resultEl.textContent);
+                        memory -= current;
+                        updateMemIndicator();
+                    } catch {}
+                    break;
                 case '=':
                     try {
                         const res = evaluate(expr, mode);
                         resultEl.textContent = res;
+                        history.push(res);
+                        if (history.length > 10) history.shift();
+                        refreshHistory();
                     } catch (e) {
-                        resultEl.textContent = 'Error';
+                        console.error(e); resultEl.textContent = 'Error';
                     }
                     break;
                 default:
@@ -510,7 +569,47 @@ if (typeof document !== 'undefined') {
             exprEl.textContent = expr || ' ';
         });
     });
+    // Keyboard support
+    if (typeof window !== 'undefined') {
+        window.addEventListener('keydown', (e) => {
+            const key = e.key;
+            const numeric = /[0-9]/;
+            const operators = ['+', '-', '*', '/', '^', '%', '(', ')', '.'];
+            if (numeric.test(key)) {
+                expr += key;
+                exprEl.textContent = expr || ' ';
+            } else if (operators.includes(key)) {
+                expr += key;
+                exprEl.textContent = expr || ' ';
+            } else if (key === 'Enter' || key === '=') {
+                e.preventDefault();
+                try {
+                    const res = evaluate(expr, mode);
+                    resultEl.textContent = res;
+                    history.push(res);
+                    if (history.length > 10) history.shift();
+                    refreshHistory();
+                } catch (e) {
+                    console.error(e); resultEl.textContent = 'Error';
+                }
+            } else if (key === 'Backspace') {
+                expr = expr.slice(0, -1);
+                exprEl.textContent = expr || ' ';
+            } else if (key === 'Escape') {
+                expr = '';
+                resultEl.textContent = '0';
+                exprEl.textContent = ' ';
+            }
+        });
+    }
+
 }
+
+        // Export for Node.js tests
+        if (typeof module !== 'undefined') {
+            module.exports = { evaluate };
+        }
 </script>
-</body>
+
+
 </html>
