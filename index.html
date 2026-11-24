@@ -325,5 +325,139 @@ if (typeof module !== 'undefined') {
     module.exports = { evaluate };
 }
 </script>
+<style>
+/* Калькулятор стили */
+body {
+    background:#1e1e1e;
+    color:#fff;
+    font-family:Arial,Helvetica,sans-serif;
+    margin:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+#calculator {
+    width:100%;
+    max-width:400px;
+    padding:10px;
+    box-sizing:border-box;
+}
+#display {
+    background:#2b2b2b;
+    padding:10px;
+    border-radius:5px;
+    margin-bottom:10px;
+}
+#expr {
+    font-size:0.8rem;
+    color:#aaa;
+    text-align:right;
+}
+#result {
+    font-size:2rem;
+    text-align:right;
+    min-height:1.5em;
+}
+#indicators {
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:5px;
+}
+.indicator {
+    font-size:0.8rem;
+}
+.grid {
+    display:grid;
+    gap:5px;
+}
+.grid-engineering {
+    grid-template-columns:repeat(6,1fr);
+    margin-bottom:10px;
+}
+.grid-main {
+    grid-template-columns:repeat(8,1fr);
+}
+button {
+    background:#4a4a4a;
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    font-size:1rem;
+    padding:15px;
+    cursor:pointer;
+}
+button[data-role="num"] { background:#3c3c3c; }
+button[data-role="op"] { background:#ff9500; }
+button[data-role="eng"] { background:#4a4a4a; }
+button[data-role="special"] { background:#2b2b2b; }
+button:focus { outline:none; }
+button:hover { filter:brightness(1.2); }
+button:active { filter:brightness(0.9); }
+</style>
+<div id="calculator">
+    <div id="display">
+        <div id="expr">&nbsp;</div>
+        <div id="result">0</div>
+        <div id="indicators">
+            <span id="mode" class="indicator">DEG</span>
+            <span id="mem" class="indicator">M</span>
+        </div>
+    </div>
+    <div class="grid grid-engineering">
+        <button data-value="sqrt(" data-role="eng">√</button>
+        <button data-value="^2" data-role="eng">x²</button>
+        <button data-value="^3" data-role="eng">x³</button>
+        <button data-value="pow(" data-role="eng">xʸ</button>
+        <button data-value="1/(" data-role="eng">1/x</button>
+        <button data-value="!" data-role="eng">n!</button>
+        <button data-value="ln(" data-role="eng">ln</button>
+        <button data-value="log(" data-role="eng">log</button>
+        <button data-value="log2(" data-role="eng">log₂</button>
+        <button data-value="exp(" data-role="eng">eˣ</button>
+        <button data-value="pow(10," data-role="eng">10ˣ</button>
+        <button data-value="sin(" data-role="eng">sin</button>
+        <button data-value="cos(" data-role="eng">cos</button>
+        <button data-value="tan(" data-role="eng">tan</button>
+        <button data-value="asin(" data-role="eng">asin</button>
+        <button data-value="acos(" data-role="eng">acos</button>
+        <button data-value="atan(" data-role="eng">atan</button>
+        <button data-value="abs(" data-role="eng">|x|</button>
+        <button data-value="pi" data-role="eng">π</button>
+        <button data-value="e" data-role="eng">e</button>
+        <button data-value="DEG" data-role="eng">DEG/RAD</button>
+        <button data-value="MC" data-role="eng">MC</button>
+        <button data-value="MR" data-role="eng">MR</button>
+        <button data-value="M+" data-role="eng">M+</button>
+        <button data-value="M-" data-role="eng">M-</button>
+    </div>
+    <div class="grid grid-main">
+        <button data-value="C" data-role="special">C</button>
+        <button data-value="CE" data-role="special">CE</button>
+        <button data-value="DEL" data-role="special">⌫</button>
+        <button data-value="(" data-role="special">(</button>
+        <button data-value=")" data-role="special">)</button>
+        <button data-value="%" data-role="special">%</button>
+        <button data-value="±" data-role="special">±</button>
+        <button data-value="/" data-role="op">/</button>
+        <button data-value="7" data-role="num">7</button>
+        <button data-value="8" data-role="num">8</button>
+        <button data-value="9" data-role="num">9</button>
+        <button data-value="*" data-role="op">*</button>
+        <button data-value="4" data-role="num">4</button>
+        <button data-value="5" data-role="num">5</button>
+        <button data-value="6" data-role="num">6</button>
+        <button data-value="-" data-role="op">-</button>
+        <button data-value="1" data-role="num">1</button>
+        <button data-value="2" data-role="num">2</button>
+        <button data-value="3" data-role="num">3</button>
+        <button data-value="+" data-role="op">+</button>
+        <button data-value="0" data-role="num">0</button>
+        <button data-value="." data-role="num">.</button>
+        <button data-value="=" data-role="special">=</button>
+    </div>
+</div>
+
 </body>
 </html>
