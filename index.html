@@ -1,144 +1,558 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Calculator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#090d14">
+    <title>Инженерный калькулятор</title>
+    <style>
+        /* Базовая палитра и размеры интерфейса */
+        :root {
+            color-scheme: dark;
+            --page: #090d14;
+            --surface: #101722;
+            --surface-raised: #172130;
+            --surface-soft: #1d2938;
+            --key: #263447;
+            --key-hover: #31435a;
+            --muted-key: #1a2533;
+            --accent: #3f8cff;
+            --accent-hover: #65a3ff;
+            --equals: #37d69b;
+            --equals-hover: #58e2ae;
+            --warning: #d65f70;
+            --warning-hover: #e97a8a;
+            --text: #f7f9fc;
+            --text-muted: #a9b6c8;
+            --text-faint: #7f8da2;
+            --line: rgba(255, 255, 255, 0.08);
+            --gap: clamp(0.25rem, 1.2vw, 0.55rem);
+            --radius: 0.875rem;
+            --shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.38);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-width: 20rem;
+            min-height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding:
+                env(safe-area-inset-top)
+                env(safe-area-inset-right)
+                env(safe-area-inset-bottom)
+                env(safe-area-inset-left);
+            background:
+                radial-gradient(circle at 50% 0%, rgba(63, 140, 255, 0.13), transparent 38rem),
+                var(--page);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-variant-numeric: tabular-nums;
+            display: grid;
+            place-items: center;
+        }
+
+        button {
+            min-width: 2.75rem;
+            min-height: 2.75rem;
+            margin: 0;
+            padding: 0.35rem 0.3rem;
+            border: 0.0625rem solid transparent;
+            border-radius: var(--radius);
+            background: var(--key);
+            color: var(--text);
+            box-shadow:
+                inset 0 0.0625rem 0 rgba(255, 255, 255, 0.06),
+                0 0.25rem 0.7rem rgba(0, 0, 0, 0.18);
+            font: inherit;
+            font-size: clamp(0.9rem, 3vw, 1.05rem);
+            font-weight: 650;
+            line-height: 1;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 100ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        button:hover {
+            background: var(--key-hover);
+        }
+
+        button:active {
+            transform: scale(0.96);
+            box-shadow: inset 0 0.125rem 0.35rem rgba(0, 0, 0, 0.28);
+        }
+
+        button:focus-visible {
+            outline: 0.1875rem solid #b9d4ff;
+            outline-offset: 0.125rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        #calculator {
+            position: relative;
+            width: min(100%, 26.25rem);
+            height: 100%;
+            max-height: 100dvh;
+            padding: clamp(0.5rem, 2.2vw, 1rem);
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: clamp(0.3rem, 1.4vh, 0.75rem);
+            background: linear-gradient(160deg, rgba(23, 33, 48, 0.98), rgba(12, 18, 27, 0.98));
+            border: 0.0625rem solid var(--line);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        #display {
+            min-width: 0;
+            padding: clamp(0.5rem, 2vw, 0.9rem);
+            border: 0.0625rem solid var(--line);
+            border-radius: calc(var(--radius) + 0.25rem);
+            background: rgba(5, 9, 15, 0.62);
+            box-shadow: inset 0 0.0625rem 0.8rem rgba(0, 0, 0, 0.28);
+        }
+
+        #indicators {
+            min-height: 1.75rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .status-group {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .indicator {
+            min-height: 1.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 999rem;
+            display: inline-flex;
+            align-items: center;
+            background: rgba(63, 140, 255, 0.14);
+            color: #b9d4ff;
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0.08em;
+        }
+
+        #mem {
+            background: rgba(55, 214, 155, 0.13);
+            color: #8ef0ca;
+        }
+
+        #historyToggle {
+            min-width: 2.75rem;
+            min-height: 2.75rem;
+            padding: 0;
+            border-color: var(--line);
+            background: var(--surface-soft);
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        #historyToggle:hover {
+            background: var(--key-hover);
+            color: var(--text);
+        }
+
+        #expr {
+            min-height: 1.25rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            color: var(--text-muted);
+            font-size: clamp(0.75rem, 2.5vw, 0.92rem);
+            line-height: 1.35;
+            text-align: right;
+            white-space: nowrap;
+            scrollbar-width: thin;
+        }
+
+        #result {
+            min-width: 0;
+            min-height: 1.12em;
+            overflow-x: auto;
+            overflow-y: hidden;
+            color: var(--text);
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            font-weight: 650;
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+            text-align: right;
+            white-space: nowrap;
+            scrollbar-width: thin;
+        }
+
+        .keypad {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto auto minmax(0, 1fr);
+            gap: var(--gap);
+        }
+
+        .key-group {
+            min-width: 0;
+        }
+
+        .group-label {
+            margin: 0 0 0.35rem 0.15rem;
+            color: var(--text-faint);
+            font-size: 0.68rem;
+            font-weight: 750;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .grid {
+            display: grid;
+            gap: var(--gap);
+        }
+
+        .grid-memory,
+        .grid-science,
+        .grid-main {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .grid-memory button {
+            background: #151e2a;
+            border-color: var(--line);
+            color: var(--text-muted);
+            font-size: clamp(0.74rem, 2.7vw, 0.9rem);
+        }
+
+        .grid-memory button:hover {
+            background: #202d3d;
+            color: var(--text);
+        }
+
+        .grid-science button {
+            background: var(--muted-key);
+            border-color: rgba(255, 255, 255, 0.035);
+            color: #c8d2df;
+            font-size: clamp(0.68rem, 2.65vw, 0.88rem);
+            font-weight: 600;
+        }
+
+        .grid-science button:hover {
+            background: #263649;
+            color: var(--text);
+        }
+
+        .primary-stack {
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: var(--gap);
+        }
+
+        .grid-controls {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-controls button {
+            background: rgba(214, 95, 112, 0.18);
+            border-color: rgba(233, 122, 138, 0.22);
+            color: #ffb7c1;
+        }
+
+        .grid-controls button:hover {
+            background: var(--warning-hover);
+            color: #16070a;
+        }
+
+        .grid-main button {
+            font-size: clamp(1rem, 4.6vw, 1.35rem);
+        }
+
+        .grid-main button[data-role="num"] {
+            background: var(--key);
+        }
+
+        .grid-main button[data-role="op"] {
+            background: rgba(63, 140, 255, 0.22);
+            border-color: rgba(101, 163, 255, 0.2);
+            color: #c6dcff;
+        }
+
+        .grid-main button[data-role="op"]:hover {
+            background: var(--accent-hover);
+            color: #061325;
+        }
+
+        .grid-main button[data-value="="] {
+            background: var(--equals);
+            color: #05271b;
+            box-shadow: 0 0.4rem 1.1rem rgba(55, 214, 155, 0.22);
+        }
+
+        .grid-main button[data-value="="]:hover {
+            background: var(--equals-hover);
+        }
+
+        #historyPanel {
+            position: fixed;
+            z-index: 20;
+            left: env(safe-area-inset-left);
+            right: env(safe-area-inset-right);
+            bottom: env(safe-area-inset-bottom);
+            height: 50dvh;
+            padding: 1rem;
+            overflow-y: auto;
+            border: 0.0625rem solid var(--line);
+            border-bottom: 0;
+            border-radius: 1.25rem 1.25rem 0 0;
+            background: rgba(16, 23, 34, 0.98);
+            box-shadow: 0 -1rem 3rem rgba(0, 0, 0, 0.48);
+            backdrop-filter: blur(1rem);
+        }
+
+        #historyPanel::before {
+            content: "История";
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        #historyPanel button {
+            width: 100%;
+            min-height: 3rem;
+            margin-bottom: 0.5rem;
+            padding: 0.55rem 0.75rem;
+            background: var(--surface-soft);
+            color: var(--text);
+            font-size: 1rem;
+            line-height: 1.35;
+            text-align: right;
+        }
+
+        /* Телефоны: интерфейс занимает экран без прокрутки страницы */
+        @media (max-width: 30rem) {
+            :root {
+                --gap: clamp(0.125rem, 0.6vw, 0.25rem);
+            }
+
+            #calculator {
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            #display {
+                padding: 0.3rem 0.5rem;
+            }
+
+            #indicators {
+                min-height: 1.5rem;
+                margin-bottom: 0.1rem;
+            }
+
+            #historyToggle,
+            button {
+                min-height: 2.75rem;
+            }
+
+            .group-label {
+                position: absolute;
+                width: 0.0625rem;
+                height: 0.0625rem;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                white-space: nowrap;
+            }
+
+            .grid-science,
+            .grid-memory,
+            .grid-main,
+            .grid-controls {
+                grid-auto-rows: minmax(2.75rem, 1fr);
+            }
+        }
+
+        /* Планшеты: научные функции и цифровой блок стоят рядом */
+        @media (min-width: 30.0625rem) {
+            #calculator {
+                width: min(calc(100% - 2rem), 45rem);
+                height: auto;
+                max-height: calc(100dvh - 2rem);
+                border-radius: 1.5rem;
+            }
+
+            .keypad {
+                grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+                grid-template-rows: auto minmax(0, 1fr);
+            }
+
+            .memory-group {
+                grid-column: 1 / -1;
+            }
+
+            .science-group,
+            .primary-stack {
+                align-self: stretch;
+            }
+
+            .grid-science,
+            .grid-main {
+                height: calc(100% - 1.25rem);
+                grid-auto-rows: minmax(3rem, 1fr);
+            }
+
+            .grid-controls {
+                grid-auto-rows: minmax(3rem, auto);
+            }
+        }
+
+        /* Десктоп: история раскрывается справа от калькулятора */
+        @media (min-width: 56.3125rem) {
+            #calculator {
+                overflow: visible;
+            }
+
+            #historyPanel {
+                position: absolute;
+                inset: 0 auto 0 calc(100% + 1rem);
+                width: min(20rem, calc((100vw - 45rem) / 2 - 2rem));
+                height: auto;
+                border: 0.0625rem solid var(--line);
+                border-radius: 1.25rem;
+                box-shadow: var(--shadow);
+            }
+        }
+
+        /* В альбомной ориентации сохраняем двухколоночную раскладку */
+        @media (orientation: landscape) and (max-height: 40rem) {
+            #calculator {
+                width: min(calc(100% - 1rem), 45rem);
+                max-height: calc(100dvh - 1rem);
+                padding: 0.5rem;
+            }
+
+            #display {
+                padding-block: 0.35rem;
+            }
+
+            .keypad {
+                grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+                grid-template-rows: auto minmax(0, 1fr);
+            }
+
+            .memory-group {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            button {
+                transition: none;
+            }
+        }
+    </style>
 </head>
 <body>
-<style>
-/* Калькулятор стили */
-body {
-    background:#1e1e1e;
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
-    margin:0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-}
-#calculator {
-    width:100%;
-    max-width:400px;
-    padding:10px;
-    box-sizing:border-box;
-}
-#display {
-    background:#2b2b2b;
-    padding:10px;
-    border-radius:5px;
-    margin-bottom:10px;
-}
-#expr {
-    font-size:0.8rem;
-    color:#aaa;
-    text-align:right;
-}
-#result {
-    font-size:2rem;
-    text-align:right;
-    min-height:1.5em;
-}
-#indicators {
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    margin-top:5px;
-}
-.indicator {
-    font-size:0.8rem;
-}
-.grid {
-    display:grid;
-    gap:5px;
-}
-.grid-engineering {
-    grid-template-columns:repeat(6,1fr);
-    margin-bottom:10px;
-}
-.grid-main {
-    grid-template-columns:repeat(8,1fr);
-}
-button {
-    background:#4a4a4a;
-    color:#fff;
-    border:none;
-    border-radius:5px;
-    font-size:1rem;
-    padding:15px;
-    cursor:pointer;
-}
-button[data-role="num"] { background:#3c3c3c; }
-button[data-role="op"] { background:#ff9500; }
-button[data-role="eng"] { background:#4a4a4a; }
-button[data-role="special"] { background:#2b2b2b; }
-button:focus { outline:none; }
-button:hover { filter:brightness(1.2); }
-button:active { filter:brightness(0.9); }
-</style>
-<div id="calculator">
-    <div id="display">
-        <div id="expr">&nbsp;</div>
-        <div id="result">0</div>
-        <div id="indicators">
-            <span id="mode" class="indicator">DEG</span>
-            <span id="mem" class="indicator">M</span>
-<button id="historyToggle" style="font-size:0.8rem;">H</button>
-<div id="historyPanel" style="display:none; max-height:140px; overflow:auto; font-size:0.85rem; padding:6px; border-top:1px solid #444;"></div>
+    <main id="calculator" aria-label="Инженерный калькулятор">
+        <section id="display" aria-live="polite">
+            <div id="indicators">
+                <div class="status-group">
+                    <span id="mode" class="indicator">DEG</span>
+                    <span id="mem" class="indicator">M</span>
+                </div>
+                <button id="historyToggle" type="button" aria-label="Показать или скрыть историю">H</button>
+            </div>
+            <div id="expr">&nbsp;</div>
+            <div id="result">0</div>
+        </section>
+
+        <div class="keypad">
+            <section class="key-group memory-group" aria-labelledby="memory-label">
+                <h2 class="group-label" id="memory-label">Память</h2>
+                <div class="grid grid-memory">
+                    <button data-value="MC" data-role="eng">MC</button>
+                    <button data-value="MR" data-role="eng">MR</button>
+                    <button data-value="M+" data-role="eng">M+</button>
+                    <button data-value="M-" data-role="eng">M−</button>
+                </div>
+            </section>
+
+            <section class="key-group science-group" aria-labelledby="science-label">
+                <h2 class="group-label" id="science-label">Научные функции</h2>
+                <div class="grid grid-science">
+                    <button data-value="sin(" data-role="eng">sin</button>
+                    <button data-value="cos(" data-role="eng">cos</button>
+                    <button data-value="tan(" data-role="eng">tan</button>
+                    <button data-value="DEG" data-role="eng">DEG/RAD</button>
+                    <button data-value="asin(" data-role="eng">asin</button>
+                    <button data-value="acos(" data-role="eng">acos</button>
+                    <button data-value="atan(" data-role="eng">atan</button>
+                    <button data-value="sqrt(" data-role="eng">√</button>
+                    <button data-value="ln(" data-role="eng">ln</button>
+                    <button data-value="log(" data-role="eng">log</button>
+                    <button data-value="log2(" data-role="eng">log₂</button>
+                    <button data-value="abs(" data-role="eng">|x|</button>
+                    <button data-value="^2" data-role="eng">x²</button>
+                    <button data-value="^3" data-role="eng">x³</button>
+                    <button data-value="pow(" data-role="eng">xʸ</button>
+                    <button data-value="1/(" data-role="eng">1/x</button>
+                    <button data-value="exp(" data-role="eng">eˣ</button>
+                    <button data-value="pow(10," data-role="eng">10ˣ</button>
+                    <button data-value="!" data-role="eng">n!</button>
+                    <button data-value="pi" data-role="eng">π</button>
+                    <button data-value="e" data-role="eng">e</button>
+                    <button data-value="(" data-role="special">(</button>
+                    <button data-value=")" data-role="special">)</button>
+                    <button data-value="%" data-role="special">%</button>
+                    <button data-value="±" data-role="special">±</button>
+                    <button data-value="CE" data-role="special">CE</button>
+                </div>
+            </section>
+
+            <section class="primary-stack" aria-label="Основные клавиши">
+                <div class="grid grid-controls">
+                    <button data-value="C" data-role="special">C</button>
+                    <button data-value="DEL" data-role="special">⌫</button>
+                </div>
+                <div class="grid grid-main">
+                    <button data-value="7" data-role="num">7</button>
+                    <button data-value="8" data-role="num">8</button>
+                    <button data-value="9" data-role="num">9</button>
+                    <button data-value="/" data-role="op">÷</button>
+                    <button data-value="4" data-role="num">4</button>
+                    <button data-value="5" data-role="num">5</button>
+                    <button data-value="6" data-role="num">6</button>
+                    <button data-value="*" data-role="op">×</button>
+                    <button data-value="1" data-role="num">1</button>
+                    <button data-value="2" data-role="num">2</button>
+                    <button data-value="3" data-role="num">3</button>
+                    <button data-value="-" data-role="op">−</button>
+                    <button data-value="0" data-role="num">0</button>
+                    <button data-value="." data-role="num">.</button>
+                    <button data-value="=" data-role="special">=</button>
+                    <button data-value="+" data-role="op">+</button>
+                </div>
+            </section>
         </div>
-    </div>
-    <div class="grid grid-engineering">
-        <button data-value="sqrt(" data-role="eng">√</button>
-        <button data-value="^2" data-role="eng">x²</button>
-        <button data-value="^3" data-role="eng">x³</button>
-        <button data-value="pow(" data-role="eng">xʸ</button>
-        <button data-value="1/(" data-role="eng">1/x</button>
-        <button data-value="!" data-role="eng">n!</button>
-        <button data-value="ln(" data-role="eng">ln</button>
-        <button data-value="log(" data-role="eng">log</button>
-        <button data-value="log2(" data-role="eng">log₂</button>
-        <button data-value="exp(" data-role="eng">eˣ</button>
-        <button data-value="pow(10," data-role="eng">10ˣ</button>
-        <button data-value="sin(" data-role="eng">sin</button>
-        <button data-value="cos(" data-role="eng">cos</button>
-        <button data-value="tan(" data-role="eng">tan</button>
-        <button data-value="asin(" data-role="eng">asin</button>
-        <button data-value="acos(" data-role="eng">acos</button>
-        <button data-value="atan(" data-role="eng">atan</button>
-        <button data-value="abs(" data-role="eng">|x|</button>
-        <button data-value="pi" data-role="eng">π</button>
-        <button data-value="e" data-role="eng">e</button>
-        <button data-value="DEG" data-role="eng">DEG/RAD</button>
-        <button data-value="MC" data-role="eng">MC</button>
-        <button data-value="MR" data-role="eng">MR</button>
-        <button data-value="M+" data-role="eng">M+</button>
-        <button data-value="M-" data-role="eng">M-</button>
-    </div>
-    <div class="grid grid-main">
-        <button data-value="C" data-role="special">C</button>
-        <button data-value="CE" data-role="special">CE</button>
-        <button data-value="DEL" data-role="special">⌫</button>
-        <button data-value="(" data-role="special">(</button>
-        <button data-value=")" data-role="special">)</button>
-        <button data-value="%" data-role="special">%</button>
-        <button data-value="±" data-role="special">±</button>
-        <button data-value="/" data-role="op">/</button>
-        <button data-value="7" data-role="num">7</button>
-        <button data-value="8" data-role="num">8</button>
-        <button data-value="9" data-role="num">9</button>
-        <button data-value="*" data-role="op">*</button>
-        <button data-value="4" data-role="num">4</button>
-        <button data-value="5" data-role="num">5</button>
-        <button data-value="6" data-role="num">6</button>
-        <button data-value="-" data-role="op">-</button>
-        <button data-value="1" data-role="num">1</button>
-        <button data-value="2" data-role="num">2</button>
-        <button data-value="3" data-role="num">3</button>
-        <button data-value="+" data-role="op">+</button>
-        <button data-value="0" data-role="num">0</button>
-        <button data-value="." data-role="num">.</button>
-        <button data-value="=" data-role="special">=</button>
-    </div>
-</div>
+
+        <aside id="historyPanel" style="display:none;" aria-label="История вычислений"></aside>
+    </main>
 
 <script>
 function evaluate(expression, mode) {
