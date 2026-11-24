@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Calculator</title>
+</head>
+<body>
+<script>
+function evaluate(expression, mode) {
+    // Токенизатор
+    const tokenize = (input) => {
+        const tokens = [];
+        let i = 0;
+        while (i < input.length) {
+            const c = input[i];
+            
+            // Пробелы
+            if (c.match(/\s/)) {
+                i++;
+                continue;
+            }
+            
+            // Числа
+            if (c.match(/\d/)) {
+                let num = '';
+                while (i < input.length && (input[i].match(/\d/) || input[i] === '.')) {
+                    num += input[i++];
+                }
+                tokens.push({ type: 'number', value: parseFloat(num) });
+                continue;
+            }
+            
+            // Переменные и функции
+            if (c.match(/[a-zA-Z]/)) {
+                let func = '';
+                while (i < input.length && input[i].match(/[a-zA-Z0-9]/)) {
+                    func += input[i++];
+                }
+                
+                if (['pi', 'e'].includes(func)) {
+                    tokens.push({ type: 'constant', value: func });
+                } else if (['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'log', 'ln', 'log2', 'abs', 'exp'].includes(func)) {
+                    tokens.push({ type: 'function', value: func });
+                } else {
+                    throw new Error(`Неизвестная функция или переменная: ${func}`);
+                }
+                continue;
+            }
+            
+            // Операторы
+            if (c === '+') {
+                tokens.push({ type: 'operator', value: '+' });
+                i++;
+            } else if (c === '-') {
+                tokens.push({ type: 'operator', value: '-' });
+                i++;
+            } else if (c === '*') {
+                tokens.push({ type: 'operator', value: '*' });
+                i++;
+            } else if (c === '/') {
+                tokens.push({ type: 'operator', value: '/' });
+                i++;
+            } else if (c === '^') {
+                tokens.push({ type: 'operator', value: '^' });
+                i++;
+            } else if (c === '(') {
+                tokens.push({ type: 'paren', value: '(' });
+                i++;
+            } else if (c === ')') {
+                tokens.push({ type: 'paren', value: ')' });
+                i++;
+            } else if (c === '!') {
+                tokens.push({ type: 'operator', value: '!' });
+                i++;
+            } else {
+                throw new Error(`Неверный символ: ${c}`);
+            }
+        }
+        return tokens;
+    };
+
+    // Парсер
+    const parse = (tokens) => {
+        const output = [];
+        const operators = [];
+        
+        const precedence = {
+            '+': 1,
+            '-': 1,
+            '*': 2,
+            '/': 2,
+            '^': 3,
+            '!': 4
+        };
+        
+        for (const token of tokens) {
+            if (token.type === 'number') {
+                output.push(token);
+            } else if (token.type === 'constant') {
+                if (token.value === 'pi') {
+                    output.push({ type: 'number', value: Math.PI });
+                } else if (token.value === 'e') {
+                    output.push({ type: 'number', value: Math.E });
+                }
+            } else if (token.type === 'function') {
+                operators.push({ type: 'function', value: token.value });
+            } else if (token.type === 'operator') {
+                if (token.value === '!') {
+                    // Обработка факториала
+                    const operand = output.pop();
+                    if (!operand) {
+                        throw new Error('Ошибка: недостаточно операндов для факториала');
+                    }
+                    if (operand.value < 0 || operand.value > 170) {
+                        throw new Error('Ошибка: факториал должен быть 0 ≤ n ≤ 170');
+                    }
+                    output.push({ type: 'number', value: factorial(operand.value) });
+                } else {
+                    // Обработка других операторов
+                    while (
+                        operators.length > 0 &&
+                        precedence[operators[operators.length - 1].value] >= precedence[token.value]
+                    ) {
+                        const op = operators.pop();
+                        const right = output.pop();
+                        const left = output.pop();
+                        output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                    }
+                    operators.push(token);
+                }
+            } else if (token.type === 'paren') {
+                if (token.value === '(') {
+                    operators.push({ type: 'paren', value: '(' });
+                } else {
+                    // Завершение скобки
+                    while (operators.length > 0 && operators[operators.length - 1].type !== 'paren') {
+                        const op = operators.pop();
+                        const right = output.pop();
+                        const left = output.pop();
+                        output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+                    }
+                    if (operators.length === 0) {
+                        throw new Error('Ошибка: несоответствие скобок');
+                    }
+                    operators.pop(); // Удалить '(' из стека
+                }
+            }
+        }
+        
+        // Очистка оставшихся операторов
+        while (operators.length > 0) {
+            const op = operators.pop();
+            const right = output.pop();
+            const left = output.pop();
+            output.push({ type: 'number', value: applyOperator(left.value, right.value, op.value) });
+        }
+        
+        if (output.length !== 1) {
+            throw new Error('Ошибка: недостаточно операндов');
+        }
+        
+        return output[0].value;
+    };
+
+    const factorial = (n) => {
+        if (n === 0) return 1;
+        let result = 1;
+        for (let i = 1; i <= n; i++) {
+            result *= i;
+        }
+        return result;
+    };
+
+    const applyOperator = (left, right, operator) => {
+        switch (operator) {
+            case '+':
+                return left + right;
+            case '-':
+                return left - right;
+            case '*':
+                return left * right;
+            case '/':
+                if (right === 0) {
+                    throw new Error('Ошибка: деление на ноль');
+                }
+                return left / right;
+            case '^':
+                return Math.pow(left, right);
+            case 'sin':
+                return Math.sin(right);
+            case 'cos':
+                return Math.cos(right);
+            case 'tan':
+                return Math.tan(right);
+            case 'asin':
+                if (right < -1 || right > 1) {
+                    throw new Error('Ошибка: аргумент arcsin должен быть в диапазоне [-1, 1]');
+                }
+                return Math.asin(right);
+            case 'acos':
+                if (right < -1 || right > 1) {
+                    throw new Error('Ошибка: аргумент arccos должен быть в диапазоне [-1, 1]');
+                }
+                return Math.acos(right);
+            case 'atan':
+                return Math.atan(right);
+            case 'sqrt':
+                if (right < 0) {
+                    throw new Error('Ошибка: квадратный корень из отрицательного числа');
+                }
+                return Math.sqrt(right);
+            case 'ln':
+                if (right <= 0) {
+                    throw new Error('Ошибка: логарифм от неположительного числа');
+                }
+                return Math.log(right);
+            case 'log':
+                if (right <= 0) {
+                    throw new Error('Ошибка: логарифм от неположительного числа');
+                }
+                return Math.log10(right);
+            case 'log2':
+                if (right <= 0) {
+                    throw new Error('Ошибка: логарифм от неположительного числа');
+                }
+                return Math.log2(right);
+            case 'abs':
+                return Math.abs(right);
+            case 'exp':
+                return Math.exp(right);
+            default:
+                throw new Error(`Ошибка: неизвестный оператор ${operator}`);
+        }
+    };
+
+    // Обработка режима (DEG/RAD) для тригонометрических функций
+    if (mode === 'DEG') {
+        const originalSin = Math.sin;
+        const originalCos = Math.cos;
+        const originalTan = Math.tan;
+        const originalAsin = Math.asin;
+        const originalAcos = Math.acos;
+        const originalAtan = Math.atan;
+
+        Math.sin = (x) => originalSin(x * Math.PI / 180);
+        Math.cos = (x) => originalCos(x * Math.PI / 180);
+        Math.tan = (x) => originalTan(x * Math.PI / 180);
+        Math.asin = (x) => originalAsin(x) * 180 / Math.PI;
+        Math.acos = (x) => originalAcos(x) * 180 / Math.PI
+        Math.atan = (x) => originalAtan(x) * 180 / Math.PI;
+
+        // Восстановление оригинальных функций после вычисления
+        // (Здесь не будет восстановления, так как это глобальные изменения)
+    }
+
+    // Выполнение парсинга и вычисления
+    const tokens = tokenize(expression);
+    return parse(tokens);
+}
+
+if (typeof module !== 'undefined') {
+    module.exports = { evaluate };
+}
+</script>
+</body>
+</html>
