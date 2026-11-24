@@ -324,6 +324,59 @@ function evaluate(expression, mode) {
 if (typeof module !== 'undefined') {
     module.exports = { evaluate };
 }
+// Обработчики кнопок
+if (typeof document !== 'undefined') {
+    let expr = '';
+    let mode = 'DEG';
+    const exprEl = document.getElementById('expr');
+    const resultEl = document.getElementById('result');
+    const modeEl = document.getElementById('mode');
+    const buttons = document.querySelectorAll('button[data-value]');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const val = btn.dataset.value;
+            switch (val) {
+                case 'C':
+                    expr = '';
+                    resultEl.textContent = '0';
+                    break;
+                case 'CE':
+                    expr = '';
+                    break;
+                case 'DEL':
+                    expr = expr.slice(0, -1);
+                    break;
+                case '±':
+                    // Переворачиваем знак последнего числа
+                    expr = expr.replace(/([0-9.]+)$/, (m) => {
+                        if (m[0] === '-') return m.slice(1);
+                        return '-' + m;
+                    });
+                    break;
+                case '%':
+                    // Делим последнюю цифру на 100
+                    expr = expr.replace(/([0-9.]+)$/, (m) => '(' + m + '/100)');
+                    break;
+                case 'DEG':
+                    mode = mode === 'DEG' ? 'RAD' : 'DEG';
+                    modeEl.textContent = mode;
+                    break;
+                case '=':
+                    try {
+                        const res = evaluate(expr, mode);
+                        resultEl.textContent = res;
+                    } catch (e) {
+                        resultEl.textContent = 'Error';
+                    }
+                    break;
+                default:
+                    expr += val;
+                    break;
+            }
+            exprEl.textContent = expr || ' ';
+        });
+    });
+}
 </script>
 <style>
 /* Калькулятор стили */
