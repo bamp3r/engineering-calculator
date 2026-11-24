@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUILD_DIR="$(mktemp -d)"
+trap 'rm -rf "$BUILD_DIR"' EXIT
+
+cp index.html "$BUILD_DIR/index.html"
+[[ -d "$BUILD_DIR" ]] || {
+  echo "Expected static build output at $BUILD_DIR" >&2
+  exit 1
+}
+
+figma make deploy-preview --build-dir "$BUILD_DIR"
